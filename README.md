@@ -3,12 +3,39 @@
 ![Daily pipeline](https://github.com/othmenbelgacem/weather-air-pipeline/actions/workflows/daily_pipeline.yml/badge.svg)
 
 An automated end-to-end data pipeline that collects hourly weather and air-quality data for **Fouchana (Ben Arous, Tunisia)**, cleans it, stores it in a database, analyzes it with SQL, and (Sprint 4) visualizes it in a dashboard. It runs by itself every day on GitHub Actions.
+**Live dashboard:** *(link added after deployment)*
 
+![Dashboard overview: KPIs and daily trend](docs/images/dashboard-trend.png)
+
+```mermaid
+flowchart LR
+    A[Open-Meteo APIs] --> B[extract.py]
+    B --> C[(data/raw JSON)]
+    C --> D[transform.py]
+    D --> E[load.py]
+    E --> F[(SQLite: hourly_readings)]
+    F --> G[sql/ + analyze.py]
+    F --> H[Streamlit dashboard]
+    I[GitHub Actions, daily 03:00 UTC] -.runs.-> B
+    I -.commits database.-> F
+```
 ## Business Question
 How do weather conditions (temperature, wind, humidity) affect air quality (PM2.5, PM10) in Fouchana, Ben Arous (Tunisia), and can we spot pollution trends over time?
 
 ## Key Findings
 *Based on 1,459 observed hours (60 complete days, 16 Sep to 15 Nov 2026). The numbers update as the pipeline collects more data, so rerun `python src/analyze.py` to refresh them.*
+## Dashboard
+Pollution drops as wind increases (calm hours average 9.7 µg/m³ PM2.5 vs 6.0 with moderate wind):
+
+![Average pollution by wind speed](docs/images/dashboard-wind.png)
+
+Pollution is lowest in the afternoon, when wind and temperature peak. The two move together, so the data cannot separate them:
+
+![Typical day, average by hour](docs/images/dashboard-daily-cycle.png)
+
+Temperature shows almost no relationship with PM2.5, while wind has the strongest correlation (-0.51):
+
+![Weather vs pollution scatter and correlations](docs/images/dashboard-weather.png)
 
 **1. Wind is the factor most strongly linked to lower particulate matter.**
 Average PM2.5 was 9.7 µg/m³ in calm hours (<5 km/h, 613 hours) versus 6.0 µg/m³ with moderate wind (10-20 km/h, 324 hours). PM10 fell from 18.1 to 11.9 µg/m³. The Spearman correlation with wind speed is -0.50 for PM10 and -0.51 for PM2.5. The "strong wind" band (20+ km/h) looks cleanest (4.7 and 11.0 µg/m³) but has only 19 hours, so it is not reliable on its own.
