@@ -76,6 +76,8 @@ def run():
     df = clean(weather, air, tz)
     logger.info(
         "Transformed %d rows (%s to %s)",
-        len(df), df["observed_at"].min(), df["observed_at"].max(),
+        len(df),
+        df["observed_at"].min(),
+        df["observed_at"].max(),
     )
     return df

@@ -8,8 +8,14 @@ import config
 logger = logging.getLogger(__name__)
 
 COLUMNS = [
-    "city", "observed_at", "temperature_c", "humidity_pct",
-    "wind_kmh", "pm10", "pm2_5", "is_forecast",
+    "city",
+    "observed_at",
+    "temperature_c",
+    "humidity_pct",
+    "wind_kmh",
+    "pm10",
+    "pm2_5",
+    "is_forecast",
 ]
 
 DDL = """
@@ -31,7 +37,17 @@ UPSERT = """
 INSERT INTO hourly_readings
     (city, observed_at, temperature_c, humidity_pct, wind_kmh, pm10, pm2_5, is_forecast, updated_at)
 VALUES
-    (:city, :observed_at, :temperature_c, :humidity_pct, :wind_kmh, :pm10, :pm2_5, :is_forecast, :updated_at)
+        (
+        :city,
+        :observed_at,
+        :temperature_c,
+        :humidity_pct,
+        :wind_kmh,
+        :pm10,
+        :pm2_5,
+        :is_forecast,
+        :updated_at
+    )
 ON CONFLICT (city, observed_at) DO UPDATE SET
     temperature_c = excluded.temperature_c,
     humidity_pct  = excluded.humidity_pct,
