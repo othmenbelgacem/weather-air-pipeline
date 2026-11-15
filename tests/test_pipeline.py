@@ -10,17 +10,21 @@ TZ = "Africa/Tunis"
 def make_frames():
     # Note the duplicated 01:00 row
     times = pd.to_datetime(["2026-11-13 00:00", "2026-11-13 01:00", "2026-11-13 01:00"])
-    weather = pd.DataFrame({
-        "time": times,
-        "temperature_2m": [19.1, 18.7, 18.7],
-        "relative_humidity_2m": [70, 72, 72],
-        "wind_speed_10m": [4.3, 5.2, 5.2],
-    })
-    air = pd.DataFrame({
-        "time": times,
-        "pm10": [21.4, 18.5, 18.5],
-        "pm2_5": [8.3, 7.2, 7.2],
-    })
+    weather = pd.DataFrame(
+        {
+            "time": times,
+            "temperature_2m": [19.1, 18.7, 18.7],
+            "relative_humidity_2m": [70, 72, 72],
+            "wind_speed_10m": [4.3, 5.2, 5.2],
+        }
+    )
+    air = pd.DataFrame(
+        {
+            "time": times,
+            "pm10": [21.4, 18.5, 18.5],
+            "pm2_5": [8.3, 7.2, 7.2],
+        }
+    )
     return weather, air
 
 
@@ -41,8 +45,16 @@ def test_out_of_range_values_become_null():
 
 def test_expected_columns_and_sorted():
     df = transform.clean(*make_frames(), TZ)
-    for col in ["city", "observed_at", "temperature_c", "humidity_pct",
-                "wind_kmh", "pm10", "pm2_5", "is_forecast"]:
+    for col in [
+        "city",
+        "observed_at",
+        "temperature_c",
+        "humidity_pct",
+        "wind_kmh",
+        "pm10",
+        "pm2_5",
+        "is_forecast",
+    ]:
         assert col in df.columns
     assert df["observed_at"].is_monotonic_increasing
 
