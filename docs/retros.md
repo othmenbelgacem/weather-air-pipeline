@@ -72,3 +72,38 @@
 - Check that each file has content (`Get-Content`) before running it.
 - Add a smoke test that the pipeline creates the `hourly_readings` table.
 - Plan where the database will live before scheduling the pipeline, because GitHub Actions starts from a fresh checkout every run.
+
+---
+
+## Sprint 3: Automation & Analysis
+**Dates:** [start] to [end]
+**Goal:** Run the pipeline daily on GitHub Actions, keep the database growing, and get the first findings from SQL.
+
+**Follow-up on the Sprint 2 retro**
+- Did I add a check that the pipeline creates the table? Yes, as a sanity step in the workflow that fails the run if `hourly_readings` is empty.
+- Did I plan where the database lives before scheduling? Yes. The workflow commits it back to the repo, and local experiments use a separate file through `DB_PATH`.
+- Did I check that each file had content before running it? [fill in honestly]
+
+**Went well**
+- The first workflow run was green in 25 seconds, with every step passing.
+- A 60-day backfill gave 1,464 rows (61 days) with no missing values, so analysis could start right away instead of waiting weeks.
+- Filtering on `is_forecast = 0` in every query kept predictions out of the findings.
+- Using Spearman correlation and wind bands showed the wind effect clearly (about -0.5 correlation, 9.7 vs 6.0 µg/m³ PM2.5).
+
+**Didn't go well**
+- I did not know the difference between Command Prompt and PowerShell, so the `$env:` syntax for `DB_PATH` did not work at first.
+- `scratch/check_db.py` had the database path hardcoded, so it showed the committed database while I thought it was reading my local one.
+- The "strong wind" band has only 19 hours, so its numbers looked impressive but are not reliable.
+- Only one manual run exists so far, so the scheduled trigger is not yet proven.
+
+**What I learned**
+- A tool that reads a path should use the same config as the pipeline, otherwise it can silently show the wrong data.
+- Always report the sample size next to a result, and say when a group is too small.
+- Wind, time of day, and humidity are tangled together, so a correlation alone cannot say which one matters.
+
+**Change for next sprint**
+- Make every script and the dashboard read the database path from `config.py`.
+- Check the Actions tab for the scheduled runs, then update the README sprint table.
+- Show the sample size and the `is_forecast = 0` filter in the dashboard too.
+
+**Scheduled runs:** [fill in on Nov 18: dates of the 3 scheduled runs and whether the bot committed each time]

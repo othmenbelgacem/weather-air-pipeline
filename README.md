@@ -1,9 +1,28 @@
 # Weather & Air Quality Data Pipeline
 
-An automated end-to-end data pipeline that collects hourly weather and air-quality data for **Fouchana (Ben Arous, Tunisia)**, cleans it, stores it in a database, and visualizes it in a dashboard.
+![Daily pipeline](https://github.com/othmenbelgacem/weather-air-pipeline/actions/workflows/daily_pipeline.yml/badge.svg)
+
+An automated end-to-end data pipeline that collects hourly weather and air-quality data for **Fouchana (Ben Arous, Tunisia)**, cleans it, stores it in a database, analyzes it with SQL, and (Sprint 4) visualizes it in a dashboard. It runs by itself every day on GitHub Actions.
 
 ## Business Question
 How do weather conditions (temperature, wind, humidity) affect air quality (PM2.5, PM10) in Fouchana, Ben Arous (Tunisia), and can we spot pollution trends over time?
+
+## Key Findings
+*Based on 1,459 observed hours (60 complete days, 16 Sep to 15 Nov 2026). The numbers update as the pipeline collects more data, so rerun `python src/analyze.py` to refresh them.*
+
+**1. Wind is the factor most strongly linked to lower particulate matter.**
+Average PM2.5 was 9.7 µg/m³ in calm hours (<5 km/h, 613 hours) versus 6.0 µg/m³ with moderate wind (10-20 km/h, 324 hours). PM10 fell from 18.1 to 11.9 µg/m³. The Spearman correlation with wind speed is -0.50 for PM10 and -0.51 for PM2.5. The "strong wind" band (20+ km/h) looks cleanest (4.7 and 11.0 µg/m³) but has only 19 hours, so it is not reliable on its own.
+
+**2. Pollution follows a daily cycle: cleanest in the afternoon, highest at night.**
+PM2.5 averages about 6.5 µg/m³ at 15:00 and about 9.6 µg/m³ late in the evening (PM10: 12.5 vs 18.8). The afternoon is also when wind peaks (about 12 km/h vs about 4.5 km/h at night) and temperature peaks (27 °C). Wind and time of day move together, so this data cannot separate them.
+
+**3. Air was mostly within WHO guideline values, and temperature and humidity matter little.**
+Only 1 of 60 complete days (7 Oct) exceeded the WHO 24-hour guideline (PM2.5 18.1 µg/m³ against 15). Temperature has a weak negative correlation with particulate matter (-0.12 PM10, -0.05 PM2.5). Humidity has a weak positive one (0.28 PM10, 0.22 PM2.5), but humidity is highest at night when wind is calm, so it is probably a stand-in for those conditions.
+
+**How to read these results**
+- Correlation is not causation. Traffic, season, and dust episodes can change pollution and weather at the same time.
+- Values are modelled concentrations, not sensor measurements.
+- The data covers about two autumn months, so these patterns may not hold in summer or winter.
 
 ## Data Source
 [Open-Meteo](https://open-meteo.com) free APIs (no API key needed):
@@ -17,35 +36,40 @@ How do weather conditions (temperature, wind, humidity) affect air quality (PM2.
 | Transform | pandas | Done |
 | Load | SQLite via SQLAlchemy (upsert) | Done |
 | Testing | pytest | Done |
-| Automation | GitHub Actions | Planned (Sprint 3) |
-| Analysis | SQL | Planned (Sprint 3) |
+| Automation | GitHub Actions (daily, 03:00 UTC) | In progress (scheduled runs being verified) |
+| Analysis | SQL + pandas | Done |
 | Dashboard | Streamlit | Planned (Sprint 4) |
 
 ## Pipeline Overview
 ```
 Extract (API) → Transform (pandas) → Load (SQLite) → Analyze (SQL) → Visualize (Streamlit)
-   ✅ done         ✅ done            ✅ done          ⏳ Sprint 3      ⏳ Sprint 4
+   ✅ done         ✅ done            ✅ done          ✅ done         ⏳ Sprint 4
+
+            ⏰ GitHub Actions runs the whole chain every day and commits the database
 ```
 
 ## Project Structure
 ```
 weather-air-pipeline/
+├── .github/workflows/
+│   └── daily_pipeline.yml   # daily schedule + manual trigger
 ├── data/
-│   ├── raw/            # raw API responses (JSON), not tracked by git
-│   ├── sample/         # one example raw file
-│   └── weather_air.db  # SQLite database, not tracked by git
+│   ├── raw/                 # raw API responses (JSON), not tracked by git
+│   ├── sample/              # one example raw file
+│   └── weather_air.db       # SQLite database, updated daily by the workflow
 ├── src/
-│   ├── config.py       # city, coordinates, API settings, paths
-│   ├── extract.py      # calls both APIs and saves raw JSON
-│   ├── transform.py    # cleans, validates, and merges the raw data
-│   ├── load.py         # upserts clean rows into SQLite
-│   └── pipeline.py     # runs extract -> transform -> load
-├── sql/                # analysis queries (Sprint 3)
-├── dashboard/          # Streamlit app (Sprint 4)
+│   ├── config.py            # city, coordinates, API settings, paths
+│   ├── extract.py           # calls both APIs and saves raw JSON
+│   ├── transform.py         # cleans, validates, and merges the raw data
+│   ├── load.py              # upserts clean rows into SQLite
+│   ├── pipeline.py          # runs extract -> transform -> load
+│   └── analyze.py           # runs the SQL files and computes correlations
+├── sql/                     # analysis queries (01 to 05)
+├── dashboard/               # Streamlit app (Sprint 4)
 ├── tests/
-│   └── test_pipeline.py  # data-quality tests
+│   └── test_pipeline.py     # data-quality tests
 ├── docs/
-│   └── retros.md       # sprint retrospectives
+│   └── retros.md            # sprint retrospectives
 ├── pytest.ini
 ├── requirements.txt
 └── README.md
@@ -55,7 +79,7 @@ weather-air-pipeline/
 
 **1. Clone and enter the project**
 ```bash
-git clone https://github.com/<your-username>/weather-air-pipeline.git
+git clone https://github.com/othmenbelgacem/weather-air-pipeline.git
 cd weather-air-pipeline
 ```
 
@@ -67,34 +91,30 @@ source venv/bin/activate       # Mac/Linux
 pip install -r requirements.txt
 ```
 
-**3. Run the full pipeline**
+**3. Run the analysis on the included database**
 ```bash
+python src/analyze.py
+```
+
+**4. Run the pipeline yourself** (use a separate database file, see "Automation" below)
+```powershell
+$env:DB_PATH = "data/local.db"     # PowerShell
 python src/pipeline.py
 ```
 
-This fetches the data, saves raw JSON in `data/raw/`, cleans it, loads it into `data/weather_air.db`, and writes a log to `logs/pipeline.log`.
-
-Example output:
-```
-2026-11-15 17:04:31 | INFO | Starting extraction for Fouchana
-2026-11-15 17:04:32 | INFO | weather: saved 72 hourly rows to fouchana_weather_20261115T160432Z.json
-2026-11-15 17:04:39 | INFO | air_quality: saved 72 hourly rows to fouchana_air_quality_20261115T160439Z.json
-2026-11-15 17:04:39 | INFO | Extraction finished successfully
-2026-11-15 17:04:39 | INFO | Transformed 72 rows (2026-11-13 00:00:00 to 2026-11-15 23:00:00)
-2026-11-15 17:04:39 | INFO | Upserted 72 rows into weather_air.db
-2026-11-15 17:04:39 | INFO | Pipeline finished successfully
-```
-
-**4. Run the tests**
+**5. Run the tests**
 ```bash
 python -m pytest
 ```
 
 ## Configuration
-All settings live in `src/config.py`. To analyze another city, change one line:
+Settings live in `src/config.py`. To analyze another city, change one line:
 ```python
 CITY = {"name": "Fouchana", "latitude": 36.70, "longitude": 10.17}
 ```
+Two optional environment variables:
+- `DB_PATH`: where the database is written (default `data/weather_air.db`)
+- `PAST_DAYS`: how many past days to fetch (default 2; a one-time backfill used 60)
 
 ## How the Pipeline Works
 
@@ -102,7 +122,7 @@ CITY = {"name": "Fouchana", "latitude": 36.70, "longitude": 10.17}
 - Requests the last 2 days plus today (72 hourly rows), so a missed run leaves no gaps.
 - Retries up to 3 times on temporary server errors (429, 5xx) with increasing delays.
 - Validates that each response contains hourly data.
-- Exits with a non-zero code on failure, so GitHub Actions can flag a failed run.
+- Exits with a non-zero code on failure, so GitHub Actions flags a failed run.
 
 **Transform** (`transform.py`)
 - Reads the newest raw file for each source and removes duplicate timestamps.
@@ -113,7 +133,23 @@ CITY = {"name": "Fouchana", "latitude": 36.70, "longitude": 10.17}
 
 **Load** (`load.py`)
 - Writes to the `hourly_readings` table with primary key `(city, observed_at)`.
-- Uses an upsert (insert, or update if the row exists), so rerunning the pipeline never creates duplicates and forecast rows get refreshed with newer values.
+- Uses an upsert, so rerunning never creates duplicates and forecast rows get refreshed with observed values.
+
+**Analyze** (`sql/`, `analyze.py`)
+- Five SQL queries: coverage, daily summary, hour-of-day pattern, wind bands, WHO guideline exceedances.
+- All queries use `is_forecast = 0`, so predictions never enter the analysis.
+- `analyze.py` runs every query and adds Spearman correlations (SQLite has no built-in correlation function).
+
+## Automation
+`.github/workflows/daily_pipeline.yml` runs every day at 03:00 UTC (04:00 in Tunisia) and can also be started manually from the Actions tab. Each run:
+1. installs dependencies and runs the tests,
+2. runs the pipeline,
+3. checks that the table is not empty (the run fails otherwise),
+4. commits the updated database back to the repository.
+
+The repository holds the database because a workflow starts from a fresh checkout each time. A one-time backfill of 60 days gave the first 1,464 rows.
+
+**Working locally:** run `git pull` before you start, and write to a separate file (`DB_PATH=data/local.db`). Only the workflow should commit `data/weather_air.db`, since a binary file cannot be merged. `data/*.db` is git-ignored except for this one file.
 
 ## Data Dictionary (table `hourly_readings`)
 | Column | Description |
@@ -134,6 +170,8 @@ CITY = {"name": "Fouchana", "latitude": 36.70, "longitude": 10.17}
 - the output has the expected columns and is sorted by time
 - loading the same data twice does not create duplicate rows
 
+The workflow also checks on every run that the table is not empty.
+
 ## Methodology
 Built with Agile in 1-week sprints, tracked on the GitHub project board. Retrospectives are in [`docs/retros.md`](docs/retros.md).
 
@@ -142,18 +180,16 @@ Built with Agile in 1-week sprints, tracked on the GitHub project board. Retrosp
 | 0 | Setup, user stories, API test | Done |
 | 1 | Extract: API calls, retries, logging, raw storage | Done |
 | 2 | Transform & load: cleaning, database, tests | Done |
-| 3 | Automation (GitHub Actions) & SQL analysis | Planned |
+| 3 | Automation (GitHub Actions) & SQL analysis | In progress: waiting for 3 scheduled runs |
 | 4 | Dashboard & polish | Planned |
 
-**Sprint 2 demo:** `python src/pipeline.py` loads 72 rows, a second run still gives 72 rows (no duplicates), and `pytest` shows 4 passed.
+**Sprint 3 demo:** the workflow succeeds in about 25 seconds, the database holds 1,464 hourly rows (60-day backfill), and `python src/analyze.py` produces the findings above.
 
 ## Limitations
 - Air-quality values are model-based estimates, not ground-sensor measurements.
 - Weather and air quality come from slightly different grid points (about 2-3 km apart).
 - Timestamps are in local time (Africa/Tunis, UTC+1).
-- Hours that were still in the future at run time are forecasts, flagged with `is_forecast = 1`. Exclude them from the analysis.
+- Hours that were still in the future at run time are forecasts, flagged with `is_forecast = 1` and excluded from the analysis.
 - Missing values are kept as NULL, not imputed.
-- Only a few days of data exist so far, so no conclusions can be drawn yet.
-
-## Key Findings
-Coming soon (Sprint 3), once the pipeline has collected enough data.
+- The history covers about two autumn months, so seasonal patterns cannot be assessed yet.
+- If the daily job stops for more than 2 days, some rows stay flagged as forecasts until a later run refreshes them.
