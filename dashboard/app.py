@@ -25,7 +25,8 @@ def load_data(db_path: str, modified: float) -> pd.DataFrame:
     con = sqlite3.connect(db_path)
     df = pd.read_sql(
         "SELECT * FROM hourly_readings WHERE is_forecast = 0",
-        con, parse_dates=["observed_at"],
+        con,
+        parse_dates=["observed_at"],
     )
     con.close()
     return df
@@ -43,9 +44,7 @@ if df.empty:
 # ---------- Sidebar: date filter ----------
 st.sidebar.header("Filters")
 min_d, max_d = df["observed_at"].min().date(), df["observed_at"].max().date()
-picked = st.sidebar.date_input(
-    "Date range", value=(min_d, max_d), min_value=min_d, max_value=max_d
-)
+picked = st.sidebar.date_input("Date range", value=(min_d, max_d), min_value=min_d, max_value=max_d)
 start, end = (picked[0], picked[1]) if len(picked) == 2 else (picked[0], picked[0])
 day = df["observed_at"].dt.date
 view = df[(day >= start) & (day <= end)]
@@ -54,8 +53,7 @@ if view.empty:
     st.stop()
 
 st.sidebar.caption(
-    f"{len(view):,} observed hours selected. Forecast hours are excluded "
-    "(`is_forecast = 0`)."
+    f"{len(view):,} observed hours selected. Forecast hours are excluded (`is_forecast = 0`)."
 )
 
 # ---------- Header ----------
@@ -90,8 +88,10 @@ with tab1:
     trend["WHO PM2.5 guideline (15)"] = WHO_PM25
     trend["WHO PM10 guideline (45)"] = WHO_PM10
     st.line_chart(trend)
-    st.caption("Guideline lines are the WHO 24-hour values. Days with fewer than 20 hours "
-               "are shown in the chart but not counted in the KPI.")
+    st.caption(
+        "Guideline lines are the WHO 24-hour values. Days with fewer than 20 hours "
+        "are shown in the chart but not counted in the KPI."
+    )
 
 # ---------- Tab 2: hour of day ----------
 with tab2:
@@ -100,14 +100,22 @@ with tab2:
     c1, c2 = st.columns(2)
     with c1:
         st.markdown("**Particulate matter (µg/m³)**")
-        st.line_chart(view.groupby(hour)[["pm2_5", "pm10"]].mean()
-                      .rename(columns={"pm2_5": "PM2.5", "pm10": "PM10"}))
+        st.line_chart(
+            view.groupby(hour)[["pm2_5", "pm10"]]
+            .mean()
+            .rename(columns={"pm2_5": "PM2.5", "pm10": "PM10"})
+        )
     with c2:
         st.markdown("**Wind (km/h) and temperature (°C)**")
-        st.line_chart(view.groupby(hour)[["wind_kmh", "temperature_c"]].mean()
-                      .rename(columns={"wind_kmh": "Wind", "temperature_c": "Temperature"}))
-    st.caption("Pollution is lowest when wind peaks in the afternoon. Wind and time of day "
-               "move together, so this view cannot separate them.")
+        st.line_chart(
+            view.groupby(hour)[["wind_kmh", "temperature_c"]]
+            .mean()
+            .rename(columns={"wind_kmh": "Wind", "temperature_c": "Temperature"})
+        )
+    st.caption(
+        "Pollution is lowest when wind peaks in the afternoon. Wind and time of day "
+        "move together, so this view cannot separate them."
+    )
 
 # ---------- Tab 3: weather vs pollution ----------
 with tab3:
@@ -115,9 +123,13 @@ with tab3:
     bins = [0, 5, 10, 20, float("inf")]
     labels = ["1. calm (<5)", "2. light (5-10)", "3. moderate (10-20)", "4. strong (20+)"]
     banded = view.assign(wind_band=pd.cut(view["wind_kmh"], bins=bins, labels=labels, right=False))
-    bands = banded.groupby("wind_band", observed=True).agg(**{
-        "hours": ("pm2_5", "size"), "PM2.5": ("pm2_5", "mean"), "PM10": ("pm10", "mean"),
-    })
+    bands = banded.groupby("wind_band", observed=True).agg(
+        **{
+            "hours": ("pm2_5", "size"),
+            "PM2.5": ("pm2_5", "mean"),
+            "PM10": ("pm10", "mean"),
+        }
+    )
     bands.index = bands.index.astype(str)
     c1, c2 = st.columns([2, 1])
     c1.bar_chart(bands[["PM2.5", "PM10"]])
@@ -137,8 +149,24 @@ with tab3:
     corr.index = list(WEATHER)
     corr.columns = list(POLLUTANT)
     st.dataframe(corr.round(2))
-    st.caption("Correlation is not causation. Season, traffic, and dust episodes can move "
-               "weather and pollution together.")
+    st.caption(
+        "Correlation is not causation. Season, traffic, and dust episodes can move "
+        "weather and pollution together."
+    )
+
+with st.expander("Pipeline health (last 10 runs)"):
+    _con = sqlite3.connect(config.DB_PATH)
+    try:
+        runs = pd.read_sql(
+            "SELECT started_at, status, rows_loaded, rows_total, duration_s, newest_observed "
+            "FROM pipeline_runs ORDER BY run_id DESC LIMIT 10",
+            _con,
+        )
+        st.dataframe(runs)
+    except Exception:
+        st.caption("No run history yet.")
+    finally:
+        _con.close()
 
 st.divider()
 st.caption(
