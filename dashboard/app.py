@@ -141,5 +141,8 @@ with tab3:
                "weather and pollution together.")
 
 st.divider()
-st.caption(f"Database last updated (UTC): {df['updated_at'].max()} | "
-           "Source: Open-Meteo | Pipeline: GitHub Actions, daily")
+st.caption(
+    f"Database last updated (UTC): {df['updated_at'].max()} | "
+    "Weather and air-quality data by [Open-Meteo.com](https://open-meteo.com) | "
+    "Pipeline: GitHub Actions, daily"
+)
