@@ -3,7 +3,7 @@
 ![Daily pipeline](https://github.com/othmenbelgacem/weather-air-pipeline/actions/workflows/daily_pipeline.yml/badge.svg)
 
 An automated end-to-end data pipeline that collects hourly weather and air-quality data for **Fouchana (Ben Arous, Tunisia)**, cleans it, stores it in a database, analyzes it with SQL, and (Sprint 4) visualizes it in a dashboard. It runs by itself every day on GitHub Actions.
-**Live dashboard:** *(link added after deployment)*
+**Live dashboard:** *(https://weather-air-pipeline.streamlit.app/)*
 
 ![Dashboard overview: KPIs and daily trend](docs/images/dashboard-trend.png)
 
