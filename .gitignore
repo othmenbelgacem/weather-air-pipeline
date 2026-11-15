@@ -1,10 +1,23 @@
-@"
+# Python environment and cache
 venv/
 .venv/
 __pycache__/
 *.py[cod]
+
+# Secrets and local configuration
 .env
+
+# IDE files
 .idea/
 .vscode/
 .DS_Store
-"@ | Out-File -Encoding utf8 .gitignore
+
+# Runtime logs
+logs/
+
+# Original API extracts (keep only the curated sample)
+data/raw/
+
+# Allow the sample folder
+!data/sample/
+!data/sample/*.json
