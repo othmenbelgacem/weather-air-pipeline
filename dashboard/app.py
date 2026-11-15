@@ -154,6 +154,20 @@ with tab3:
         "weather and pollution together."
     )
 
+with st.expander("Pipeline health (last 10 runs)"):
+    _con = sqlite3.connect(config.DB_PATH)
+    try:
+        runs = pd.read_sql(
+            "SELECT started_at, status, rows_loaded, rows_total, duration_s, newest_observed "
+            "FROM pipeline_runs ORDER BY run_id DESC LIMIT 10",
+            _con,
+        )
+        st.dataframe(runs)
+    except Exception:
+        st.caption("No run history yet.")
+    finally:
+        _con.close()
+
 st.divider()
 st.caption(
     f"Database last updated (UTC): {df['updated_at'].max()} | "
