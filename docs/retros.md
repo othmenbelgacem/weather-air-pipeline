@@ -41,3 +41,34 @@
 **Change for next sprint**
 - Inspect the data first and write the data-quality checks (duplicates, ranges, forecast flag) before writing the cleaning code.
 - Add `is_forecast` to the data so future hours never pollute the analysis.
+
+---
+
+## Sprint 2: Transform & Load
+**Dates:** [start] to [end]
+**Goal:** Clean and merge the raw data, load it into SQLite without duplicates, and cover it with tests.
+
+**Follow-up on the Sprint 1 retro**
+- Did I write the data-quality tests before the cleaning code? Yes. I wrote the tests first and ran them to see them fail.
+- Did I add `is_forecast`? Yes. Future hours are flagged in every row.
+
+**Went well**
+- Writing the tests first made it clear what "done" meant.
+- The upsert with primary key `(city, observed_at)` makes the pipeline safe to rerun. Two runs in a row gave 72 rows both times, with `updated_at` refreshed.
+- The `is_forecast` flag keeps future hours out of the analysis.
+- Raw files and the clean database are separate, so I can reprocess the raw data if the cleaning rules change.
+
+**Didn't go well**
+- `DB_PATH` was added to `config.py` before `BASE_DIR` was defined, which raised a `NameError`.
+- pytest was not installed in the virtual environment, so I used `python -m pytest`.
+- `pipeline.py` was an empty file, so the pipeline ran silently and the table was never created.
+
+**What I learned**
+- Silent success is suspicious. If a script prints no logs, check that it actually ran.
+- Passing unit tests do not prove the pipeline is wired together. Run it end to end too.
+- Order matters in a Python config file, because variables must be defined before they are used.
+
+**Change for next sprint**
+- Check that each file has content (`Get-Content`) before running it.
+- Add a smoke test that the pipeline creates the `hourly_readings` table.
+- Plan where the database will live before scheduling the pipeline, because GitHub Actions starts from a fresh checkout every run.
