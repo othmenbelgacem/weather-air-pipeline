@@ -132,7 +132,7 @@ with tab3:
     )
     bands.index = bands.index.astype(str)
     c1, c2 = st.columns([2, 1])
-    c1.bar_chart(bands[["PM2.5", "PM10"]])
+    c1.bar_chart(bands[["PM2.5", "PM10"]], stack=False)
     c2.dataframe(bands.round(1))
     if (bands["hours"] < 50).any():
         st.caption("Bands with fewer than 50 hours are unreliable on their own.")

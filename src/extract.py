@@ -27,8 +27,8 @@ def setup_logging():
 def build_session():
     """Session that retries on temporary server errors with increasing delays."""
     retry = Retry(
-        total=3,
-        backoff_factor=1,  # waits 1s, 2s, 4s
+        total=4,
+        backoff_factor=2,
         status_forcelist=[429, 500, 502, 503, 504],
         allowed_methods=["GET"],
     )
@@ -89,7 +89,7 @@ def main():
 
     if failures:
         logger.error("Extraction finished with %d failure(s)", failures)
-        sys.exit(1)  # non-zero exit lets GitHub Actions flag the run as failed
+        sys.exit(1)
 
     logger.info("Extraction finished successfully")
 

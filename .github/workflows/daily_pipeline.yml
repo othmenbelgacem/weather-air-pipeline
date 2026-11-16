@@ -2,7 +2,7 @@ name: Daily pipeline
 
 on:
   schedule:
-    - cron: "0 3 * * *"
+    - cron: "17 3 * * *"
   workflow_dispatch:
 
 permissions:
@@ -16,7 +16,7 @@ concurrency:
 jobs:
   run-pipeline:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -33,7 +33,13 @@ jobs:
         run: python -m pytest
 
       - name: Run pipeline (validation and checks included)
-        run: python src/pipeline.py
+        run: |
+          for attempt in 1 2 3; do
+            python src/pipeline.py && exit 0
+            echo "Attempt $attempt failed, waiting before the next try"
+            sleep $((attempt * 60))
+          done
+          exit 1
 
       - name: Commit updated database
         run: |
