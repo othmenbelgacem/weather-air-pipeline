@@ -13,7 +13,7 @@ AIR_QUALITY_VARS = "pm10,pm2_5"
 PAST_DAYS = int(os.environ.get("PAST_DAYS", 2))
 FORECAST_DAYS = 1
 TIMEZONE = "auto"
-REQUEST_TIMEOUT = 15
+REQUEST_TIMEOUT = 30
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 RAW_DIR = BASE_DIR / "data" / "raw"
